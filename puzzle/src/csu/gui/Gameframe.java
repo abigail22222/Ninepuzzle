@@ -127,6 +127,7 @@ public class Gameframe extends JFrame implements KeyListener {
 
     }
 
+    //<editor-fold desc="游戏界面和菜单初始化">
     private void initGmenubar() {
 
         //initGmenubar
@@ -175,7 +176,9 @@ public class Gameframe extends JFrame implements KeyListener {
 
 
     }
+    //</editor-fold>
 
+    //<editor-fold desc="计时功能">
     private void startTimer() {
         startTime = System.currentTimeMillis();//开始计时
         Timer timer = new Timer(1000, new ActionListener() {
@@ -203,6 +206,7 @@ public class Gameframe extends JFrame implements KeyListener {
         timeLabel.setText("Time: " + elapsedTimeInSeconds + "s");
 
     }
+    //</editor-fold>
 
 
     @Override
