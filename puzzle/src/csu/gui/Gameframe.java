@@ -31,10 +31,12 @@ public class Gameframe extends JFrame implements KeyListener {
         initGframe();
         // 初始化菜单栏
         initGmenubar();
+
         // 启动计时器
         startTimer();
         // 载入图片
         initphotos();
+
 
         // 显示
         this.setVisible(true);
@@ -83,6 +85,21 @@ public class Gameframe extends JFrame implements KeyListener {
         this.getContentPane().removeAll();
         // 更新游戏状态栈
         gameStateStack.push(copyArray(data));
+
+        //每当initphoto()时，会new一个Jable显示时间，因为此类构造函数中调用了StartTimer()：startTime = System.currentTimeMillis();：获取当前时间，并将其作为计时的起始时间。
+        //timer = new Timer(1000, new ActionListener() {...});：创建计时器，指定触发间隔为1000毫秒，即1秒。使用匿名内部类实现 ActionListener 接口，重写 actionPerformed 方法，以在计时器触发时执行特定的操作。
+        //timer.start();：启动计时器，使其开始计时并触发事件。
+        //在这个例子中，每次计时器触发时，它会调用 updateElapsedTime() 方法，该方法会计算经过的时间并更新显示在界面上。这样就实现了实时显示经过的时间的效果。
+
+        //startTimer可以持续显示时间，每次移动拼图时又会initphoto，出现新的时间显示，所以StartTimer的时间是利用的这个容器，不会被遮盖
+
+        //显示时间 在最上层
+        //System.out.println("bbb");
+        long currentTime = System.currentTimeMillis();
+        long elapsedTimeInSeconds = (currentTime - startTime) / 1000;
+        timeLabel = new JLabel("Time: " + elapsedTimeInSeconds + "s");
+        timeLabel.setBounds(100, 30, 100, 20);
+        this.getContentPane().add(timeLabel);
 
 
         for (int k = 0; k < 4; k++) {
@@ -160,7 +177,7 @@ public class Gameframe extends JFrame implements KeyListener {
     }
 
     private void startTimer() {
-        startTime = System.currentTimeMillis();
+        startTime = System.currentTimeMillis();//开始计时
         Timer timer = new Timer(1000, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -176,18 +193,15 @@ public class Gameframe extends JFrame implements KeyListener {
     }
 
     private void displayElapsedTime(long elapsedTimeInSeconds) {
-        if (timeLabel == null) {
-            timeLabel = new JLabel("Time: " + elapsedTimeInSeconds + "s");
-            timeLabel.setBounds(5, 10, 100, 20);
-            this.getContentPane().add(timeLabel);
-        }
+
+//        if (timeLabel == null) {
+//            timeLabel = new JLabel("Time: " + elapsedTimeInSeconds + "s");
+//            timeLabel.setBounds(100, 30, 100, 20);
+//            this.getContentPane().add(timeLabel);
+//        }
 
         timeLabel.setText("Time: " + elapsedTimeInSeconds + "s");
 
-        // 将timeLabel移到顶层
-        setComponentZOrder(timeLabel, 0);
-
-        getContentPane().repaint();
     }
 
 
@@ -205,7 +219,7 @@ public class Gameframe extends JFrame implements KeyListener {
     public void keyReleased(KeyEvent e) {
         //👈37 👆38 👉39 👇40
         int theKey=e.getKeyCode();
-        System.out.println(theKey);
+        //System.out.println(theKey);
         if(theKey==37)
         {
             if (lastMoveDirection != 39) { // 不是上一次右移
