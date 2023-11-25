@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="hutool-all-5.7.14">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/puzzle/lib/hutool-all-5.7.14.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
