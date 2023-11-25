@@ -8,27 +8,24 @@ import java.util.*;
 
 public class Gameframe extends JFrame implements KeyListener,ActionListener,Level {
 
-    //记录状态等拼图移动参数
+    //记录状态
     private Stack<int[][]> gameStateStack;
     private int undoCount; // 用于记录悔步次数  lastMoveDirection 变量记录了用户上一次的移动方向。在用户按下上下左右键时，检查当前方向与上一次方向的关系，如果不符合规定的移动序列，就不执行移动操作。这样，你就可以防止用户通过直接按上下左右键来绕过悔棋限制。
     private int lastMoveDirection = -1; // -1 表示初始值，没有上一次的移动方向
 
-    //储存图片的棋盘参数
+    //成员变量，储存图片的棋盘
     //默认是简单=3
-    private int difficultyLevel=Level.easy;  //例： 3 表示 3x3 的拼图
+    private int difficultyLevel=Level.easy;  // 表示拼图的难易程度，例如 3 表示 3x3 的拼图
+
     int[][]data=new int[difficultyLevel][difficultyLevel];
     //x：行  y:列
     int x,y;
 
-    //游戏计时功能参数
     private JLabel timeLabel;  // 用于显示时间
     private long startTime;    // 游戏开始时间
 
-    //动态打乱参数
-    private Timer animationTimer;
-    private int animationStep;
-
-    //路径参数
+    //定义一个变量，记录当前展示图片的路径
+    //默认最开始的图片是animal里简单的第1张
     String inpath="animal";
     int photoindex=1;
     String path = "puzzle\\image\\"+inpath+"\\"+difficultyLevel+"\\"+inpath+photoindex+"\\";
@@ -63,33 +60,26 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
             initGframe();
             // 初始化菜单栏
             initGmenubar();
-
             // 启动计时器
             startTimer();
             // 载入图片
             initphotos();
         }else{
-            // 初始化界面 标题，宽高，位置布局，关闭方式
-            initGframe();
-            // 初始化菜单栏
-            initGmenubar();
-            // 启动计时器
-            startTimer();
-            // 载入图片
-            initphotos();
-            while(!isSolvable(data)){
-                showDialog("此局无解");
-                // 初始化数据（打乱）
+            while(!isSolvable(data))
+            {
+                showDialog("此局无解，已为您重新开新的一局，此弹框3秒后关闭");
                 initdata();
+                this.setVisible(false);
+                // 初始化界面 标题，宽高，位置布局，关闭方式
+                initGframe();
+                // 初始化菜单栏
+                initGmenubar();
+                // 启动计时器
+                startTimer();
+                // 载入图片
+                initphotos();
             }
-            // 初始化界面 标题，宽高，位置布局，关闭方式
-            initGframe();
-            // 初始化菜单栏
-            initGmenubar();
-            // 启动计时器
-            startTimer();
-            // 载入图片
-            initphotos();
+
         }
 
 
@@ -404,7 +394,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
                 initphotos();
                 lastMoveDirection = 37; // 更新上一次的移动方向
             }else{
-                showDialog("悔棋请按backspace");
+                showDialog("悔棋请按backspace，此弹框3秒后自动关闭");
             }
         } else if (theKey==38) {
             if (lastMoveDirection != 40) { // 不是上一次下移
@@ -416,7 +406,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
                 initphotos();
                 lastMoveDirection = 38; // 更新上一次的移动方向
             }else{
-                showDialog("悔棋请按backspace");
+                showDialog("悔棋请按backspace，此弹框3秒后自动关闭");
             }
 
         } else if (theKey==39) {
@@ -429,7 +419,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
                 initphotos();
                 lastMoveDirection = 39; // 更新上一次的移动方向
             }else{
-                showDialog("悔棋请按backspace");
+                showDialog("悔棋请按backspace，此弹框3秒后自动关闭");
             }
 
         } else if (theKey==40) {
@@ -442,7 +432,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
                 initphotos();
                 lastMoveDirection = 40; // 更新上一次的移动方向
             }else{
-                showDialog("悔棋请按backspace");
+                showDialog("悔棋请按backspace，此弹框3秒后自动关闭");
             }
 
         }else if (theKey == KeyEvent.VK_BACK_SPACE) {
@@ -451,13 +441,18 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
             lastMoveDirection = -1; // 重置上一次的移动方向
         } else if (theKey==65) {//A刷新界面
             initdata();
+            while (!isSolvable(data))
+            {
+                showDialog("此局无解，已为你重新刷新，此弹框3秒后自动关闭");
+                initdata();
+            }
             initphotos();
         }
 
         if (isPuzzleSolved()) {
-            // 玩家胜利的处理逻辑...
-
-            showDialog("恭喜！您获得了胜利");
+            // 处理玩家胜利的处理逻辑...
+            showDialog("恭喜！您获得了胜利，此弹框3秒后自动关闭");
+            //记录分数，填进文件。。。文件里进行用户排序
         }
     }
 
@@ -580,6 +575,11 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
         undoCount=0;
         //重新打乱图品顺序
         initdata();
+        while (!isSolvable(data))
+        {
+            showDialog("此局无解,已为你重新生成新的一局，此弹框3秒后自动关闭");
+            initdata();
+        }
         //重新开始计时
         startTimer();
         //重新加载图片
