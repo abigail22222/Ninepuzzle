@@ -1,6 +1,11 @@
 package csu.gui;
 
-public class User {
+import java.io.Serial;
+import java.io.Serializable;
+
+public class User implements Serializable {
+    @Serial
+    private static final long serialVersionUID = -4536490153000563424L;
     private String username;
     private String password;
 

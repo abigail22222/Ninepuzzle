@@ -4,9 +4,20 @@ import javax.swing.*;
 import javax.swing.Timer;
 import javax.swing.border.BevelBorder;
 import java.awt.event.*;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.*;
+import cn.hutool.core.io.FileUtil;
+
 
 public class Gameframe extends JFrame implements KeyListener,ActionListener,Level {
+
+    //获取当前登录用户
+    User gcurrentUser =null;
+    //保存用户游戏数据的集合
+    static ArrayList<Gameinfo> current=new ArrayList<>();
+
 
     //记录状态
     private Stack<int[][]> gameStateStack;
@@ -42,17 +53,21 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
 
     JMenuItem replayitem = new JMenuItem("重新游戏");
     JMenuItem escitem=new JMenuItem("退出到开始界面");
-    JMenuItem stopgameitem=new JMenuItem("结束游戏");
-    JMenuItem rangeitem = new JMenuItem("排行榜");
+    JMenuItem stopgameitem=new JMenuItem("结束游戏");//存数据
+    JMenuItem rangeitem = new JMenuItem("排行榜");//读数据
 
     JMenuItem manualitem=new JMenuItem("游戏说明💻");
 
 
     //表示游戏主界面
-    public Gameframe()
+    public Gameframe(User gcurrentUser)
     {
         // 初始化数据（打乱）
         initdata();
+
+        //每个Gameframe对象都有它对应的登录用户
+        this.gcurrentUser=gcurrentUser;
+
 
         if(isSolvable(data))
         {
@@ -321,7 +336,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
         //界面居中
         this.setLocationRelativeTo(null);
         //关闭方式
-        this.setDefaultCloseOperation(WindowConstants. DISPOSE_ON_CLOSE);
+        this.setDefaultCloseOperation(3);
         //取消默认布局居中,里面的图片位置才会根据自己定的坐标位置显示
         this.setLayout(null);
         //添加键盘监听
@@ -439,7 +454,8 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
             // 悔棋操作
             undoMove();
             lastMoveDirection = -1; // 重置上一次的移动方向
-        } else if (theKey==65) {//A刷新界面
+        } else if (theKey==65) {
+            //A刷新界面
             initdata();
             while (!isSolvable(data))
             {
@@ -447,12 +463,45 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
                 initdata();
             }
             initphotos();
+        } else if (theKey==KeyEvent.VK_F4) {
+            //一键胜利
+            int value = 1;
+            for (int i = 0; i < difficultyLevel; i++) {
+                for (int j = 0; j < difficultyLevel; j++) {
+                    data[i][j]=value;
+                    value = (value + 1) % (difficultyLevel * difficultyLevel);
+                }
+            }
+            initphotos();
         }
 
         if (isPuzzleSolved()) {
             // 处理玩家胜利的处理逻辑...
-            showDialog("恭喜！您获得了胜利，此弹框3秒后自动关闭");
-            //记录分数，填进文件。。。文件里进行用户排序
+            long endTime = System.currentTimeMillis();
+            long elapsedTimeInSeconds = (endTime - startTime) / 1000;
+
+
+            try{
+                //记录了游戏时间，和当前用户
+                current.add(new Gameinfo(elapsedTimeInSeconds, gcurrentUser));
+                //把用户游戏信息写入文件中  把current和原来的current做了替换，做出一条一条加记录的效果；所以current必须是静态的，不然重新登陆new了新的Gameframe后current又是一个新的current
+                //FileUtil.writeLines(current,"E:\\project\\Ninepuzzle\\puzzle\\save\\save.txt","UTF-8");
+                try {
+                    ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("puzzle\\save\\save.txt"));
+                    oos.writeObject(new Gameinfo(elapsedTimeInSeconds, gcurrentUser));
+                    oos.close();
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
+
+
+                showDialog("恭喜！您获得了胜利，此弹框3秒后自动关闭");
+                System.out.println(current);
+            }catch (NullPointerException exception)//如果没登陆？
+            {
+                showDialog("恭喜胜利，但是您未登录，不会有你的信息记录");
+            }
+
         }
     }
 
@@ -514,8 +563,6 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
             replay();
         } else if (obj==escitem) {
             //esc
-            //判断是否胜利，如果胜利则需结算分数，添加记录
-
             //关闭当前游戏界面
             this.setVisible(false);
             //打开开始界面
@@ -531,6 +578,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
         } else if (obj==manualitem) {
             //manual
             //打开说明面板
+            new Manualframe();
         } else if (obj==animal) {
             //随机选择图片,修改图片路径
             Random random=new Random();

@@ -29,6 +29,9 @@ public class Loginframe extends JFrame implements MouseListener {
     //正确的验证码
     JLabel rightCode = new JLabel();
 
+    //当前登录的用户
+    public  User currentUser;
+
 
     public Loginframe() {
         //读取本地文件中的用户信息
@@ -176,12 +179,13 @@ public class Loginframe extends JFrame implements MouseListener {
             } else if (!codeInput.equalsIgnoreCase(rightCode.getText())) {
                 showJDialog("验证码输入错误");
             } else if (contains(userInfo)) {
+                //需要把当前登录的用户传递给游戏界面
+                currentUser=userInfo;//获取当前登录的用户
                 System.out.println("用户名和密码正确可以开始玩游戏了");
                 //关闭当前登录界面
                 this.setVisible(false);
                 //打开游戏的主界面
-                //需要把当前登录的用户名传递给游戏界面
-                new Gameframe();
+                new Gameframe(currentUser);
             } else {
                 System.out.println("用户名或密码错误");
                 showJDialog("用户名或密码错误");

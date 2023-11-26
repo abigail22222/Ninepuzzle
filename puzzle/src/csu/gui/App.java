@@ -6,7 +6,7 @@ public class App {
     public static void main(String[] args)
     {
         //表示程序入口
-         new Gameframe();
+         new Gameframe(null);
     }
 
 
