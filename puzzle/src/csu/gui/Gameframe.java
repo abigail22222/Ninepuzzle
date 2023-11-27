@@ -4,11 +4,8 @@ import javax.swing.*;
 import javax.swing.Timer;
 import javax.swing.border.BevelBorder;
 import java.awt.event.*;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.util.*;
-import cn.hutool.core.io.FileUtil;
 
 
 public class Gameframe extends JFrame implements KeyListener,ActionListener,Level {
@@ -42,6 +39,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
     String path = "puzzle\\image\\"+inpath+"\\"+difficultyLevel+"\\"+inpath+photoindex+"\\";
 
 
+    //<editor-fold desc="菜单选项">
     //创建选项的下拉选项
     JMenuItem level1=new JMenuItem("简单");//3*
     JMenuItem level2=new JMenuItem("普通");//5*
@@ -52,11 +50,12 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
     JMenuItem sport = new JMenuItem("运动");
 
     JMenuItem replayitem = new JMenuItem("重新游戏");
-    JMenuItem escitem=new JMenuItem("退出到开始界面");
-    JMenuItem stopgameitem=new JMenuItem("结束游戏");//存数据
+    JMenuItem relogin =new JMenuItem("重新登陆");
+    JMenuItem stopgameitem=new JMenuItem("退出游戏");
     JMenuItem rangeitem = new JMenuItem("排行榜");//读数据
-
+    JMenuItem deleteLastRecordItem = new JMenuItem("删除记录");
     JMenuItem manualitem=new JMenuItem("游戏说明💻");
+    //</editor-fold>
 
 
     //表示游戏主界面
@@ -64,10 +63,8 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
     {
         // 初始化数据（打乱）
         initdata();
-
         //每个Gameframe对象都有它对应的登录用户
         this.gcurrentUser=gcurrentUser;
-
 
         if(isSolvable(data))
         {
@@ -96,9 +93,6 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
             }
 
         }
-
-
-
         // 显示
         this.setVisible(true);
     }
@@ -190,7 +184,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
         }
         return inversions;
     }
-    // 判断是否可解
+    // 判断是否可解,在游戏开局和重新开始还有刷新的时候都要判断
     public static boolean isSolvable(int[][] puzzle) {
         // 将二维数组转化为一维数组
         int[] flatPuzzle = new int[puzzle.length * puzzle[0].length];
@@ -221,7 +215,6 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
         }
         return true;  // 所有块都在正确的位置，返回 true
     }
-
 
     private void initphotos() {
         //每次移动图片时需要把原先的图片全部删除
@@ -270,6 +263,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
 
     }
 
+
     //<editor-fold desc="游戏界面和菜单初始化">
     private void initGmenubar() {
 
@@ -295,9 +289,10 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
         changeImage.add(sport);
 
         functionmenu.add(replayitem);//重新开始
-        functionmenu.add(escitem);//退到登录界面
+        functionmenu.add(relogin);//退到登录界面
         functionmenu.add(stopgameitem);//关闭虚拟机
         functionmenu.add(rangeitem);//查看排名
+        functionmenu.add(deleteLastRecordItem);//删除记录
 
         helpmenu.add(manualitem);//查看游戏说明
 
@@ -310,10 +305,11 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
 
         //给条目绑定事件
         replayitem.addActionListener(this);
-        escitem.addActionListener(this);
+        relogin.addActionListener(this);
         stopgameitem.addActionListener(this);
         rangeitem.addActionListener(this);
         manualitem.addActionListener(this);
+        deleteLastRecordItem.addActionListener(this);
 
         level1.addActionListener(this);
         level2.addActionListener(this);
@@ -347,33 +343,33 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
     }
     //</editor-fold>
 
-    //<editor-fold desc="计时功能">
+
+
+    //<editor-fold desc="计时功能 游戏开局要调用，重新游戏也要调用（重置starTime） 游戏胜利要暂停游戏计时">
+    Timer gametimer=null;
     private void startTimer() {
         startTime = System.currentTimeMillis();//开始计时
-        Timer timer = new Timer(1000, new ActionListener() {
+        gametimer = new Timer(1000, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 updateElapsedTime();
             }
         });
-        timer.start();
+        gametimer.start();
     }
     private void updateElapsedTime() {
         long currentTime = System.currentTimeMillis();
         long elapsedTimeInSeconds = (currentTime - startTime) / 1000;
         displayElapsedTime(elapsedTimeInSeconds);
     }
-
     private void displayElapsedTime(long elapsedTimeInSeconds) {
-
-//        if (timeLabel == null) {
-//            timeLabel = new JLabel("Time: " + elapsedTimeInSeconds + "s");
-//            timeLabel.setBounds(100, 30, 100, 20);
-//            this.getContentPane().add(timeLabel);
-//        }
-
         timeLabel.setText("Time: " + elapsedTimeInSeconds + "s");
-
+    }
+    //方法用于停止游戏计时
+    private void stopTimer() {
+        if (gametimer != null && gametimer.isRunning()) {
+            gametimer.stop();
+        }
     }
 
 
@@ -391,7 +387,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
 
     }
 
-    //移动拼图的逻辑
+    //移动拼图的逻辑 移动前要判断胜利，胜利要停止计时，记录信息；判断是否非法悔棋；A：刷新界面  F4：一键胜利
     @Override
     public void keyReleased(KeyEvent e) {
         //👈37 👆38 👉39 👇40
@@ -480,23 +476,24 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
             long endTime = System.currentTimeMillis();
             long elapsedTimeInSeconds = (endTime - startTime) / 1000;
 
+            // 停止游戏计时
+            stopTimer();
 
             try{
-                //记录了游戏时间，和当前用户
+                //记录了游戏时间，和当前用户 每重新登陆一次都会有current和原来的current做了替换；所以current必须是静态的
                 current.add(new Gameinfo(elapsedTimeInSeconds, gcurrentUser));
-                //把用户游戏信息写入文件中  把current和原来的current做了替换，做出一条一条加记录的效果；所以current必须是静态的，不然重新登陆new了新的Gameframe后current又是一个新的current
-                //FileUtil.writeLines(current,"E:\\project\\Ninepuzzle\\puzzle\\save\\save.txt","UTF-8");
+                //按照游戏用时升序排序
+                sortGameinfoList();
+                //把用户游戏信息写入文件中
                 try {
                     ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("puzzle\\save\\save.txt"));
-                    oos.writeObject(new Gameinfo(elapsedTimeInSeconds, gcurrentUser));
+                    oos.writeObject(current);
                     oos.close();
                 } catch (IOException ex) {
                     throw new RuntimeException(ex);
                 }
-
-
                 showDialog("恭喜！您获得了胜利，此弹框3秒后自动关闭");
-                System.out.println(current);
+                //System.out.println(current);
             }catch (NullPointerException exception)//如果没登陆？
             {
                 showDialog("恭喜胜利，但是您未登录，不会有你的信息记录");
@@ -504,6 +501,20 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
 
         }
     }
+    //<editor-fold desc="按下键盘时会用的方法，悔棋的操作，按顺序保存记录的排序方法">
+    //<editor-fold desc="根据游戏用时对Gameinfo对象进行排序的方法">
+    private void sortGameinfoList() {
+        Collections.sort(current, new Comparator<Gameinfo>() {
+            @Override
+            public int compare(Gameinfo gameinfo1, Gameinfo gameinfo2) {
+                // 根据elapsedTimeInSeconds进行升序比较
+                return Double.compare(gameinfo1.getElapsedTimeInSeconds(), gameinfo2.getElapsedTimeInSeconds());
+            }
+        });
+        // 如果要进行降序排序，可以使用Collections.reverseOrder()而不是自定义Comparator。
+        // Collections.sort(current, Collections.reverseOrder(Comparator.comparing(Gameinfo::getElapsedTimeInSeconds)));
+    }
+    //</editor-fold>
 
     //<editor-fold desc="悔棋的实现">
     // 悔棋
@@ -553,6 +564,10 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
 
 
     //</editor-fold>
+    //</editor-fold>
+
+
+    //点击按钮的动作
     @Override
     public void actionPerformed(ActionEvent e) {
         //获取事件的事件源
@@ -561,7 +576,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
         {
             //replay
             replay();
-        } else if (obj==escitem) {
+        } else if (obj== relogin) {
             //esc
             //关闭当前游戏界面
             this.setVisible(false);
@@ -570,16 +585,18 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
         } else if (obj==stopgameitem) {
             //stop
             //关闭虚拟机
-
             System.exit(0);
         } else if (obj==rangeitem) {
             //range
-            //打开记录面板
+            //反序列化得到save.txt的内容，再展示出来
+            SwingUtilities.invokeLater(() -> new SaveFileReader().createAndShowUI());
         } else if (obj==manualitem) {
-            //manual
-            //打开说明面板
+            //manual游戏说明
             new Manualframe();
-        } else if (obj==animal) {
+        }else if (obj == deleteLastRecordItem) {
+            // 删除上一条成功记录
+            deleteLastRecord();
+        }else if (obj==animal) {
             //随机选择图片,修改图片路径
             Random random=new Random();
             photoindex= random.nextInt(9)+1;//[1,9]
@@ -614,7 +631,15 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
             replay();
         }
 
-
+    }
+    //<editor-fold desc="菜单栏的点击会用到的方法：删除最新记录，重新开始">
+    private void deleteLastRecord() {
+        if (!current.isEmpty()) {
+            current.remove(current.size() - 1);
+            showDialog("成功删除上一条成功记录，此弹框3秒后自动关闭");
+        } else {
+            showDialog("记录为空，无法删除。此弹框3秒后自动关闭");
+        }
     }
 
     private void replay() {
@@ -633,12 +658,14 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
         //重新加载图片
         initphotos();
     }
+    //</editor-fold>
 
 
+    //<editor-fold desc="3秒提示弹框">
     //只创建一个弹框对象
     JDialog jDialog = new JDialog();
     // 将 Timer 声明为类级别的变量
-    private Timer timer;
+    private Timer jdialogtimer;
 
     //因为展示弹框的代码，会被运行多次
     //所以，我们把展示弹框的代码，抽取到一个方法中。以后用到的时候，就不需要写了
@@ -657,13 +684,13 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
             //要让jDialog居中
             jDialog.setLocationRelativeTo(null);
             //让弹框
-            jDialog.setModal(false);
+            jDialog.setModal(false);/////
             //让jDialog显示出来
             jDialog.setVisible(true);
             // 如果定时器尚未运行，则设置定时器
-            if (timer == null || !timer.isRunning()) {
+            if (jdialogtimer == null || !jdialogtimer.isRunning()) {
                 // 创建一个新的 Timer
-                timer = new Timer(3000, new ActionListener() {
+                jdialogtimer = new Timer(3000, new ActionListener() {
                     @Override
                     public void actionPerformed(ActionEvent e) {
                         SwingUtilities.invokeLater(new Runnable() {
@@ -675,9 +702,10 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
                         });
                     }
                 });
-                timer.setRepeats(false);  // 设置为不重复触发
-                timer.start();
+                jdialogtimer.setRepeats(false);  // 设置为不重复触发
+                jdialogtimer.start();
             }
         }
     }
+    //</editor-fold>
 }
