@@ -183,11 +183,11 @@ public class RegisterJFrame extends JFrame implements MouseListener {
         //设置宽高
         setSize(488, 430);
         //设置标题
-        setTitle("拼图游戏 V1.0注册");
+        setTitle("九宫格拼图-注册");
         //取消内部默认布局
         setLayout(null);
         //设置关闭模式
-        setDefaultCloseOperation(3);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         //设置居中
         setLocationRelativeTo(null);
         //设置置顶

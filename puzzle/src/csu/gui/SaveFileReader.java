@@ -10,7 +10,7 @@ public class SaveFileReader {
 
     public void createAndShowUI() {
         JFrame frame = new JFrame("排行榜");
-        frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.setSize(400, 300);
 
         JTextArea textArea = new JTextArea();
@@ -45,4 +45,6 @@ public class SaveFileReader {
             textArea.setText("Error loading data.");
         }
     }
+
+
 }

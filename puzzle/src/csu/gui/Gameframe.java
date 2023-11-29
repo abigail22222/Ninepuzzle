@@ -6,6 +6,7 @@ import javax.swing.border.BevelBorder;
 import java.awt.event.*;
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 
 
 public class Gameframe extends JFrame implements KeyListener,ActionListener,Level {
@@ -20,6 +21,8 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
     private Stack<int[][]> gameStateStack;
     private int undoCount; // 用于记录悔步次数  lastMoveDirection 变量记录了用户上一次的移动方向。在用户按下上下左右键时，检查当前方向与上一次方向的关系，如果不符合规定的移动序列，就不执行移动操作。这样，你就可以防止用户通过直接按上下左右键来绕过悔棋限制。
     private int lastMoveDirection = -1; // -1 表示初始值，没有上一次的移动方向
+    private int step=0;//步数
+
 
     //成员变量，储存图片的棋盘
     //默认是简单=3
@@ -38,6 +41,8 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
     int photoindex=1;
     String path = "puzzle\\image\\"+inpath+"\\"+difficultyLevel+"\\"+inpath+photoindex+"\\";
 
+    //本局游戏分数：
+    private long finalScore;
 
     //<editor-fold desc="菜单选项">
     //创建选项的下拉选项
@@ -81,63 +86,81 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
             {
                 showDialog("此局无解，已为您重新开新的一局，此弹框3秒后关闭");
                 initdata();
-                this.setVisible(false);
-                // 初始化界面 标题，宽高，位置布局，关闭方式
-                initGframe();
-                // 初始化菜单栏
-                initGmenubar();
-                // 启动计时器
-                startTimer();
-                // 载入图片
-                initphotos();
             }
-
+            initGframe();
+            // 初始化菜单栏
+            initGmenubar();
+            // 启动计时器
+            startTimer();
+            // 载入图片
+            initphotos();
         }
         // 显示
         this.setVisible(true);
     }
 
 
+
+
+
     private void initdata() {
+        // 初始化游戏状态栈
+        gameStateStack = new Stack<>();
         //打乱
         if(difficultyLevel==3)
         {
             int[]temparr= new int[]{0, 1, 2, 3, 4, 5, 6, 7, 8};
-            upset(temparr,difficultyLevel);
+            try {
+                upset(temparr,difficultyLevel);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         } else if (difficultyLevel==5) {
             int[]temparr=new int[]{0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24};
-            upset(temparr,difficultyLevel);
+            try {
+                upset(temparr,difficultyLevel);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
 
         } else if (difficultyLevel==6) {
             int[]temparr=new int[]{0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35};
-            upset(temparr,difficultyLevel);
+            try {
+                upset(temparr,difficultyLevel);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
 
         }
 
-        // 初始化游戏状态栈
-        gameStateStack = new Stack<>();
+
         gameStateStack.push(copyArray(data));
 
     }
 
     //打乱
-    private void upset(int[] temparr, int difficultyLevel) {
-        //data数组必须手动改一次，不然只会是最原来的3*3
-        data = new int[difficultyLevel][difficultyLevel];
+    private void upset(int[] temparr, int difficultyLevel) throws InterruptedException {
 
-        Random r = new Random();
-        for (int i = 0; i < difficultyLevel * difficultyLevel; i++) {
-            int index = r.nextInt(difficultyLevel * difficultyLevel);
-            int temp = temparr[i];
-            temparr[i] = temparr[index];
-            temparr[index] = temp;
-        }
+            //data数组必须手动改一次，不然只会是最原来的3*3
+            data = new int[difficultyLevel][difficultyLevel];
+
+            //一维数组乱序
+            Random r = new Random();
+            for (int i = 0; i < difficultyLevel * difficultyLevel; i++) {
+                int index = r.nextInt(difficultyLevel * difficultyLevel);
+                int temp = temparr[i];
+                temparr[i] = temparr[index];
+                temparr[index] = temp;
+            }
+
+
 
         for (int i = 0; i < difficultyLevel * difficultyLevel; i++) {
             // 获取0在棋盘中的位置
-            if (temparr[i] == 0) {
-                x = i / difficultyLevel;
-                y = i % difficultyLevel;
+            if (temparr[i] == 0)
+            {
+            x = i / difficultyLevel;
+            y = i % difficultyLevel;
             }
             data[i / difficultyLevel][i % difficultyLevel] = temparr[i];
         }
@@ -326,7 +349,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
 
     private void initGframe() {
         //设置界面标题
-        this.setTitle("WJSN");
+        this.setTitle("九宫格拼图");
         //宽高
         this.setSize(600,585);
         //界面居中
@@ -349,13 +372,16 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
     Timer gametimer=null;
     private void startTimer() {
         startTime = System.currentTimeMillis();//开始计时
-        gametimer = new Timer(1000, new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                updateElapsedTime();
-            }
+        SwingUtilities.invokeLater(() -> {
+
+            gametimer = new Timer(1000, new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    updateElapsedTime();
+                }
+            });
+            gametimer.start();
         });
-        gametimer.start();
     }
     private void updateElapsedTime() {
         long currentTime = System.currentTimeMillis();
@@ -367,10 +393,13 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
     }
     //方法用于停止游戏计时
     private void stopTimer() {
-        if (gametimer != null && gametimer.isRunning()) {
-            gametimer.stop();
-        }
+        SwingUtilities.invokeLater(() -> {
+            if (gametimer != null && gametimer.isRunning()) {
+                gametimer.stop();
+            }
+        });
     }
+
 
 
 
@@ -389,7 +418,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
 
     //移动拼图的逻辑 移动前要判断胜利，胜利要停止计时，记录信息；判断是否非法悔棋；A：刷新界面  F4：一键胜利
     @Override
-    public void keyReleased(KeyEvent e) {
+    public void keyReleased(KeyEvent e){
         //👈37 👆38 👉39 👇40
         int theKey=e.getKeyCode();
         //System.out.println(theKey);
@@ -404,8 +433,9 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
                 y++;
                 initphotos();
                 lastMoveDirection = 37; // 更新上一次的移动方向
+                step++;
             }else{
-                showDialog("悔棋请按backspace，此弹框3秒后自动关闭");
+                showDialog("悔棋请按backspace");
             }
         } else if (theKey==38) {
             if (lastMoveDirection != 40) { // 不是上一次下移
@@ -416,8 +446,9 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
                 x++;
                 initphotos();
                 lastMoveDirection = 38; // 更新上一次的移动方向
+                step++;
             }else{
-                showDialog("悔棋请按backspace，此弹框3秒后自动关闭");
+                showDialog("悔棋请按backspace");
             }
 
         } else if (theKey==39) {
@@ -429,10 +460,10 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
                 y--;
                 initphotos();
                 lastMoveDirection = 39; // 更新上一次的移动方向
+                step++;
             }else{
-                showDialog("悔棋请按backspace，此弹框3秒后自动关闭");
+                showDialog("悔棋请按backspace");
             }
-
         } else if (theKey==40) {
             if (lastMoveDirection != 38) { // 不是上一次上移
                 if (x==0)//空白拼图在边界的情况
@@ -442,24 +473,26 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
                 x--;
                 initphotos();
                 lastMoveDirection = 40; // 更新上一次的移动方向
+                step++;
             }else{
-                showDialog("悔棋请按backspace，此弹框3秒后自动关闭");
+                showDialog("悔棋请按backspace");
             }
-
         }else if (theKey == KeyEvent.VK_BACK_SPACE) {
             // 悔棋操作
             undoMove();
             lastMoveDirection = -1; // 重置上一次的移动方向
+            step++;
         } else if (theKey==65) {
             //A刷新界面
             initdata();
             while (!isSolvable(data))
             {
-                showDialog("此局无解，已为你重新刷新，此弹框3秒后自动关闭");
+                showDialog("无解，已为你重新刷新，此弹框3秒后自动关闭");
                 initdata();
             }
             initphotos();
         } else if (theKey==KeyEvent.VK_F4) {
+            step=0;
             //一键胜利
             int value = 1;
             for (int i = 0; i < difficultyLevel; i++) {
@@ -476,15 +509,23 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
             long endTime = System.currentTimeMillis();
             long elapsedTimeInSeconds = (endTime - startTime) / 1000;
 
+            //分数结算
+            try {
+                finalScore=100/elapsedTimeInSeconds+60/step;
+            } catch (ArithmeticException ex) {//step=0就胜利了那肯定是用快捷键了
+                finalScore=0;
+            }
+
             // 停止游戏计时
             stopTimer();
 
             try{
-                //记录了游戏时间，和当前用户 每重新登陆一次都会有current和原来的current做了替换；所以current必须是静态的
-                current.add(new Gameinfo(elapsedTimeInSeconds, gcurrentUser));
-                //按照游戏用时升序排序
-                sortGameinfoList();
-                //把用户游戏信息写入文件中
+                // 记录了游戏时间，和当前用户 每重新登陆一次都会有current和原来的current做了替换；所以current必须是静态的
+                Gameinfo gi=new Gameinfo(finalScore,gcurrentUser);
+                current.add(gi);
+                // 按照游戏分数升序排序
+                sortGameinfoList(current);
+                 // 把用户游戏信息写入文件中
                 try {
                     ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("puzzle\\save\\save.txt"));
                     oos.writeObject(current);
@@ -492,23 +533,26 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
                 } catch (IOException ex) {
                     throw new RuntimeException(ex);
                 }
-                showDialog("恭喜！您获得了胜利，此弹框3秒后自动关闭");
+
+                new GameVictoryScreen(finalScore).settleScore();
+                //showDialog("恭喜！您获得了胜利，此弹框3秒后自动关闭");
                 //System.out.println(current);
             }catch (NullPointerException exception)//如果没登陆？
             {
-                showDialog("恭喜胜利，但是您未登录，不会有你的信息记录");
+                new GameVictoryScreen(finalScore).settleScore();
+                //showDialog("恭喜胜利，但是您未登录，不会有你的信息记录");
             }
 
         }
     }
     //<editor-fold desc="按下键盘时会用的方法，悔棋的操作，按顺序保存记录的排序方法">
-    //<editor-fold desc="根据游戏用时对Gameinfo对象进行排序的方法">
-    private void sortGameinfoList() {
+    //<editor-fold desc="根据游戏分数对Gameinfo对象进行排序的方法">
+    private void sortGameinfoList(ArrayList<Gameinfo>current) {
         Collections.sort(current, new Comparator<Gameinfo>() {
             @Override
             public int compare(Gameinfo gameinfo1, Gameinfo gameinfo2) {
-                // 根据elapsedTimeInSeconds进行升序比较
-                return Double.compare(gameinfo1.getElapsedTimeInSeconds(), gameinfo2.getElapsedTimeInSeconds());
+                // 根据finalScore进行升序比较
+                return Double.compare(gameinfo1.getFinalScore(), gameinfo2.getFinalScore());
             }
         });
         // 如果要进行降序排序，可以使用Collections.reverseOrder()而不是自定义Comparator。
@@ -532,7 +576,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
             // 增加悔棋步数计数
             undoCount++;
         } else {
-            new Undocant2frame();
+            showDialog("已悔棋1步，无法再次悔棋！");
         }
     }
 
@@ -675,7 +719,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
             //把弹框中原来的文字给清空掉。
             jDialog.getContentPane().removeAll();
             JLabel jLabel = new JLabel(content);
-            jLabel.setBounds(0,0,200,150);
+            jLabel.setBounds(0,0,600,150);
             jDialog.add(jLabel);
             //给弹框设置大小
             jDialog.setSize(200, 150);
