@@ -1,4 +1,8 @@
-package csu.gui;
+package csu.gui.ui;
+
+import csu.gui.domain.Gameinfo;
+import csu.gui.domain.Level;
+import csu.gui.domain.User;
 
 import javax.swing.*;
 import javax.swing.Timer;
@@ -6,10 +10,9 @@ import javax.swing.border.BevelBorder;
 import java.awt.event.*;
 import java.io.*;
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
 
 
-public class Gameframe extends JFrame implements KeyListener,ActionListener,Level {
+public class Gameframe extends JFrame implements KeyListener,ActionListener, Level {
 
     //获取当前登录用户
     User gcurrentUser =null;
@@ -55,6 +58,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
     JMenuItem sport = new JMenuItem("运动");
 
     JMenuItem replayitem = new JMenuItem("重新游戏");
+    JMenuItem Limitime=new JMenuItem("限时挑战");
     JMenuItem relogin =new JMenuItem("重新登陆");
     JMenuItem stopgameitem=new JMenuItem("退出游戏");
     JMenuItem rangeitem = new JMenuItem("排行榜");//读数据
@@ -153,17 +157,15 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
                 temparr[index] = temp;
             }
 
-
-
-        for (int i = 0; i < difficultyLevel * difficultyLevel; i++) {
-            // 获取0在棋盘中的位置
-            if (temparr[i] == 0)
-            {
-            x = i / difficultyLevel;
-            y = i % difficultyLevel;
+            for (int i = 0; i < difficultyLevel * difficultyLevel; i++) {
+                // 获取0在棋盘中的位置
+                if (temparr[i] == 0)
+                {
+                x = i / difficultyLevel;
+                y = i % difficultyLevel;
+                }
+                data[i / difficultyLevel][i % difficultyLevel] = temparr[i];
             }
-            data[i / difficultyLevel][i % difficultyLevel] = temparr[i];
-        }
     }
 
 
@@ -312,6 +314,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
         changeImage.add(sport);
 
         functionmenu.add(replayitem);//重新开始
+        functionmenu.add(Limitime);//限时挑战
         functionmenu.add(relogin);//退到登录界面
         functionmenu.add(stopgameitem);//关闭虚拟机
         functionmenu.add(rangeitem);//查看排名
@@ -328,6 +331,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
 
         //给条目绑定事件
         replayitem.addActionListener(this);
+        Limitime.addActionListener(this);
         relogin.addActionListener(this);
         stopgameitem.addActionListener(this);
         rangeitem.addActionListener(this);
@@ -372,8 +376,8 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
     Timer gametimer=null;
     private void startTimer() {
         startTime = System.currentTimeMillis();//开始计时
-        SwingUtilities.invokeLater(() -> {
 
+        SwingUtilities.invokeLater(() -> {
             gametimer = new Timer(1000, new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
@@ -612,6 +616,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
 
 
     //点击按钮的动作
+
     @Override
     public void actionPerformed(ActionEvent e) {
         //获取事件的事件源
@@ -673,6 +678,11 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
             //修改路径
             path = "puzzle\\image\\"+inpath+"\\"+difficultyLevel+"\\"+inpath+photoindex+"\\";
             replay();
+        } else if (obj==Limitime) {
+            //用一个新的计时器,到时显示游戏失败
+            // 创建一个定时器，用于计时游戏时间
+            limitGameTime();
+            replay();
         }
 
     }
@@ -684,6 +694,25 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
         } else {
             showDialog("记录为空，无法删除。此弹框3秒后自动关闭");
         }
+    }
+
+    private Timer limitTimer;
+    private void limitGameTime() {
+        final int[] elapsedTimelimit = {0};
+        SwingUtilities.invokeLater(()->{
+            limitTimer = new Timer(1000, new ActionListener() {//每隔一秒触发
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    elapsedTimelimit[0]++;
+                    if (elapsedTimelimit[0] >= 10) {
+                        limitTimer.stop();
+                        showDialog("游戏失败");
+                    }
+                }
+            });
+
+            limitTimer.start();
+        });
     }
 
     private void replay() {
@@ -710,10 +739,6 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener,Leve
     JDialog jDialog = new JDialog();
     // 将 Timer 声明为类级别的变量
     private Timer jdialogtimer;
-
-    //因为展示弹框的代码，会被运行多次
-    //所以，我们把展示弹框的代码，抽取到一个方法中。以后用到的时候，就不需要写了
-    //直接调用就可以了。
     public void showDialog(String content){
         if(!jDialog.isVisible()){
             //把弹框中原来的文字给清空掉。

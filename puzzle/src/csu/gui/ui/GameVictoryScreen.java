@@ -1,4 +1,4 @@
-package csu.gui;
+package csu.gui.ui;
 
 import javax.swing.*;
 import java.awt.*;

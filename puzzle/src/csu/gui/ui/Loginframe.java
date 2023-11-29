@@ -1,16 +1,15 @@
-package csu.gui;
+package csu.gui.ui;
 
 
 import javax.swing.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.List;
 
 import cn.hutool.core.io.FileUtil;
+import csu.gui.Util.CodeUtil;
+import csu.gui.domain.User;
 
 public class Loginframe extends JFrame implements MouseListener {
 

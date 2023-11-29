@@ -1,4 +1,6 @@
-package csu.gui;
+package csu.gui.ui;
+
+import csu.gui.domain.Gameinfo;
 
 import javax.swing.*;
 import java.awt.*;

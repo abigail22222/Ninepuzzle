@@ -1,4 +1,4 @@
-package csu.gui;
+package csu.gui.Util;
 
 
 import java.util.ArrayList;

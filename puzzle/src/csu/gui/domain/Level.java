@@ -1,4 +1,4 @@
-package csu.gui;
+package csu.gui.domain;
 //游戏3种困难程度
 public interface Level {
     final int easy=3;

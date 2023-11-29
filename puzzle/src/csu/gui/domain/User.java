@@ -1,4 +1,4 @@
-package csu.gui;
+package csu.gui.domain;
 
 import java.io.Serial;
 import java.io.Serializable;

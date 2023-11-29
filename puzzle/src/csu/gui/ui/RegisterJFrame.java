@@ -1,7 +1,9 @@
-package csu.gui;
+package csu.gui.ui;
 
 
 import cn.hutool.core.io.FileUtil;
+import csu.gui.domain.User;
+import csu.gui.ui.Loginframe;
 
 import javax.swing.*;
 import java.awt.event.MouseEvent;

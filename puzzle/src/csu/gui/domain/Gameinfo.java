@@ -1,6 +1,7 @@
-package csu.gui;
+package csu.gui.domain;
 
-import java.io.Serial;
+import csu.gui.domain.User;
+
 import java.io.Serializable;
 
 public class Gameinfo implements Serializable {

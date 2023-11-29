@@ -1,9 +1,9 @@
 package csu.gui;
 
-import csu.gui.Gameframe;
+import csu.gui.ui.Gameframe;
+import csu.gui.ui.Loginframe;
 
 import javax.swing.*;
-import java.awt.*;
 
 public class App extends JFrame {
     public static void main(String[] args)
