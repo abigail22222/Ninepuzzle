@@ -9,13 +9,23 @@ public class Gameinfo implements Serializable {
     private static final long serialVersionUID = -4499197583888430243L;
     private long finalScore;
     private User user;
+    private long finaltime;
+
+    public long getFinaltime() {
+        return finaltime;
+    }
+
+    public void setFinaltime(long finaltime) {
+        this.finaltime = finaltime;
+    }
 
     public Gameinfo() {
     }
 
-    public Gameinfo(long finalScore, User user) {
+    public Gameinfo(long finalScore, User user,long finaltime) {
         this.finalScore = finalScore;
         this.user = user;
+        this.finaltime=finaltime;
     }
 
     public long getFinalScore() {
@@ -36,6 +46,6 @@ public class Gameinfo implements Serializable {
 
     public String toString()
     {
-         return "username="+user.getUsername()+"&password="+user.getPassword()+"&time="+finalScore;
+         return "username="+user.getUsername()+"&password="+user.getPassword()+"&time="+finaltime+"&score="+finalScore;
     }
 }

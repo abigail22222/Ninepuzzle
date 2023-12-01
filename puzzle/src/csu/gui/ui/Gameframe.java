@@ -1,5 +1,6 @@
 package csu.gui.ui;
 
+import csu.gui.Util.AStarSearch;
 import csu.gui.domain.Gameinfo;
 import csu.gui.domain.Level;
 import csu.gui.domain.User;
@@ -14,6 +15,7 @@ import java.util.*;
 
 public class Gameframe extends JFrame implements KeyListener,ActionListener, Level {
 
+    //<editor-fold desc="成员变量">
     //获取当前登录用户
     User gcurrentUser =null;
     //保存用户游戏数据的集合
@@ -46,6 +48,9 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
 
     //本局游戏分数：
     private long finalScore;
+    //</editor-fold>
+
+    List<int[][]> solution;
 
     //<editor-fold desc="菜单选项">
     //创建选项的下拉选项
@@ -67,6 +72,8 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
     //</editor-fold>
 
 
+
+
     //表示游戏主界面
     public Gameframe(User gcurrentUser)
     {
@@ -77,6 +84,8 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
 
         if(isSolvable(data))
         {
+            solution=AStarSearch.solvePuzzle(data);//在初始打乱的时候就获取最小路径的List，List的size就是最小步数，在游戏胜利结算分数时，用户的步数除以size就是移动正确率
+            System.out.println(solution.size());
             // 初始化界面 标题，宽高，位置布局，关闭方式
             initGframe();
             // 初始化菜单栏
@@ -91,6 +100,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
                 showDialog("此局无解，已为您重新开新的一局，此弹框3秒后关闭");
                 initdata();
             }
+            solution=AStarSearch.solvePuzzle(data);//在初始打乱的时候就获取最小路径的List，List的size就是最小步数，在游戏胜利结算分数时，用户的步数除以size就是移动正确率
             initGframe();
             // 初始化菜单栏
             initGmenubar();
@@ -104,9 +114,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
     }
 
 
-
-
-
+    //<editor-fold desc="打乱拼图-初始化数组">
     private void initdata() {
         // 初始化游戏状态栈
         gameStateStack = new Stack<>();
@@ -141,7 +149,6 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
         gameStateStack.push(copyArray(data));
 
     }
-
     //打乱
     private void upset(int[] temparr, int difficultyLevel) throws InterruptedException {
 
@@ -167,8 +174,6 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
                 data[i / difficultyLevel][i % difficultyLevel] = temparr[i];
             }
     }
-
-
     // 复制二维数组
     private int[][] copyArray(int[][] source) {
         int[][] destination = new int[source.length][];
@@ -177,6 +182,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
         }
         return destination;
     }
+    //</editor-fold>
 
 
     //<editor-fold desc="判断拼图是否有解">
@@ -226,7 +232,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
     }
     //</editor-fold>
 
-
+    //<editor-fold desc="判断胜利">
     //判断胜利------在每次拼图移动的时候都要用到这个方法
     private boolean isPuzzleSolved() {
         int value = 1;
@@ -240,6 +246,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
         }
         return true;  // 所有块都在正确的位置，返回 true
     }
+    //</editor-fold>
 
     private void initphotos() {
         //每次移动图片时需要把原先的图片全部删除
@@ -410,6 +417,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
     //</editor-fold>
 
 
+    //<editor-fold desc="keytyped，keypressed">
     @Override
     public void keyTyped(KeyEvent e) {
 
@@ -419,6 +427,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
     public void keyPressed(KeyEvent e) {
 
     }
+    //</editor-fold>
 
     //移动拼图的逻辑 移动前要判断胜利，胜利要停止计时，记录信息；判断是否非法悔棋；A：刷新界面  F4：一键胜利
     @Override
@@ -494,17 +503,12 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
                 showDialog("无解，已为你重新刷新，此弹框3秒后自动关闭");
                 initdata();
             }
+            solution=AStarSearch.solvePuzzle(data);//在初始打乱的时候就获取最小路径的List，List的size就是最小步数，在游戏胜利结算分数时，用户的步数除以size就是移动正确率
             initphotos();
         } else if (theKey==KeyEvent.VK_F4) {
             step=0;
             //一键胜利
-            int value = 1;
-            for (int i = 0; i < difficultyLevel; i++) {
-                for (int j = 0; j < difficultyLevel; j++) {
-                    data[i][j]=value;
-                    value = (value + 1) % (difficultyLevel * difficultyLevel);
-                }
-            }
+            goalstate();
             initphotos();
         }
 
@@ -515,7 +519,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
 
             //分数结算
             try {
-                finalScore=100/elapsedTimeInSeconds+60/step;
+                finalScore=100/elapsedTimeInSeconds+step/solution.size();
             } catch (ArithmeticException ex) {//step=0就胜利了那肯定是用快捷键了
                 finalScore=0;
             }
@@ -525,7 +529,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
 
             try{
                 // 记录了游戏时间，和当前用户 每重新登陆一次都会有current和原来的current做了替换；所以current必须是静态的
-                Gameinfo gi=new Gameinfo(finalScore,gcurrentUser);
+                Gameinfo gi=new Gameinfo(finalScore,gcurrentUser,elapsedTimeInSeconds);
                 current.add(gi);
                 // 按照游戏分数升序排序
                 sortGameinfoList(current);
@@ -561,6 +565,19 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
         });
         // 如果要进行降序排序，可以使用Collections.reverseOrder()而不是自定义Comparator。
         // Collections.sort(current, Collections.reverseOrder(Comparator.comparing(Gameinfo::getElapsedTimeInSeconds)));
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="目标状态">
+    //目标棋盘状态
+    private void goalstate() {
+        int value = 1;
+        for (int i = 0; i < difficultyLevel; i++) {
+            for (int j = 0; j < difficultyLevel; j++) {
+                data[i][j]=value;
+                value = (value + 1) % (difficultyLevel * difficultyLevel);
+            }
+        }
     }
     //</editor-fold>
 
@@ -616,7 +633,6 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
 
 
     //点击按钮的动作
-
     @Override
     public void actionPerformed(ActionEvent e) {
         //获取事件的事件源
@@ -726,6 +742,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
             showDialog("此局无解,已为你重新生成新的一局，此弹框3秒后自动关闭");
             initdata();
         }
+        solution=AStarSearch.solvePuzzle(data);//在初始打乱的时候就获取最小路径的List，List的size就是最小步数，在游戏胜利结算分数时，用户的步数除以size就是移动正确率
         //重新开始计时
         startTimer();
         //重新加载图片
