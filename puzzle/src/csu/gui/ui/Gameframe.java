@@ -1,6 +1,6 @@
 package csu.gui.ui;
 
-import csu.gui.Util.AStarSearch;
+import csu.gui.Util.PuzzleSolver;
 import csu.gui.domain.Gameinfo;
 import csu.gui.domain.Level;
 import csu.gui.domain.User;
@@ -22,7 +22,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
     static ArrayList<Gameinfo> current=new ArrayList<>();
 
 
-    //记录状态
+    //记录玩家的每一步
     private Stack<int[][]> gameStateStack;
     private int undoCount; // 用于记录悔步次数  lastMoveDirection 变量记录了用户上一次的移动方向。在用户按下上下左右键时，检查当前方向与上一次方向的关系，如果不符合规定的移动序列，就不执行移动操作。这样，你就可以防止用户通过直接按上下左右键来绕过悔棋限制。
     private int lastMoveDirection = -1; // -1 表示初始值，没有上一次的移动方向
@@ -33,7 +33,10 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
     //默认是简单=3
     private int difficultyLevel=Level.easy;  // 表示拼图的难易程度，例如 3 表示 3x3 的拼图
 
-    int[][]data=new int[difficultyLevel][difficultyLevel];
+    int[][]data=new int[difficultyLevel][difficultyLevel];//限时图片的棋盘
+    int[][]initialPuzzle=new int[difficultyLevel][difficultyLevel];//游戏开局棋盘
+    int[][]goalPuzzle=new int[difficultyLevel][difficultyLevel];//游戏目标状态棋盘
+    private List<int[][]> solution;//A*搜索的路径
     //x：行  y:列
     int x,y;
 
@@ -50,7 +53,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
     private long finalScore;
     //</editor-fold>
 
-    List<int[][]> solution;
+
 
     //<editor-fold desc="菜单选项">
     //创建选项的下拉选项
@@ -69,47 +72,75 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
     JMenuItem rangeitem = new JMenuItem("排行榜");//读数据
     JMenuItem deleteLastRecordItem = new JMenuItem("删除记录");
     JMenuItem manualitem=new JMenuItem("游戏说明💻");
+
     //</editor-fold>
 
 
+    // 调用这个方法开始游戏  replay refresh
+    public void startGame() {
+        // 初始化数据
+        initdata();
+        goalstate(goalPuzzle);//设置目标 goalPuzzle是成员变量 在选择不同难度的时候需要重置
+        isSolvable(data);
+        while( !isSolvable(data))
+        {
+            showDialog("无解，已为你重新刷新，此弹框3秒后自动关闭");
+            initdata();
+            isSolvable(data);
+        }
+        solveAndAnimatePuzzle(data, goalPuzzle);
+        // 初始化界面 标题，宽高，位置布局，关闭方式
+        initGframe();
+        // 初始化菜单栏
+        initGmenubar();
+        // 启动计时器
+        startTimer();
+        // 载入图片
+        initphotos();
+        // 调用拼图求解器，并在界面中展示解决过程
+
+    }
 
 
     //表示游戏主界面
     public Gameframe(User gcurrentUser)
     {
-        // 初始化数据（打乱）
-        initdata();
         //每个Gameframe对象都有它对应的登录用户
         this.gcurrentUser=gcurrentUser;
-
-        if(isSolvable(data))
-        {
-            solution=AStarSearch.solvePuzzle(data);//在初始打乱的时候就获取最小路径的List，List的size就是最小步数，在游戏胜利结算分数时，用户的步数除以size就是移动正确率
-            System.out.println(solution.size());
-            // 初始化界面 标题，宽高，位置布局，关闭方式
-            initGframe();
-            // 初始化菜单栏
-            initGmenubar();
-            // 启动计时器
-            startTimer();
-            // 载入图片
-            initphotos();
-        }else{
-            while(!isSolvable(data))
-            {
-                showDialog("此局无解，已为您重新开新的一局，此弹框3秒后关闭");
-                initdata();
-            }
-            solution=AStarSearch.solvePuzzle(data);//在初始打乱的时候就获取最小路径的List，List的size就是最小步数，在游戏胜利结算分数时，用户的步数除以size就是移动正确率
-            initGframe();
-            // 初始化菜单栏
-            initGmenubar();
-            // 启动计时器
-            startTimer();
-            // 载入图片
-            initphotos();
-        }
-        // 显示
+        startGame();
+//        // 初始化数据（打乱）
+//        initdata();
+//        //每个Gameframe对象都有它对应的登录用户
+//        this.gcurrentUser=gcurrentUser;
+//
+//        if(isSolvable(data))
+//        {
+//            //solution=AStarSearch.solvePuzzle(data);//在初始打乱的时候就获取最小路径的List，List的size就是最小步数，在游戏胜利结算分数时，用户的步数除以size就是移动正确率
+//            //System.out.println(solution.size());
+//            // 初始化界面 标题，宽高，位置布局，关闭方式
+//            initGframe();
+//            // 初始化菜单栏
+//            initGmenubar();
+//            // 启动计时器
+//            startTimer();
+//            // 载入图片
+//            initphotos();
+//        }else{
+//            while(!isSolvable(data))
+//            {
+//                showDialog("此局无解，已为您重新开新的一局，此弹框3秒后关闭");
+//                initdata();
+//            }
+//            //solution=AStarSearch.solvePuzzle(data);//在初始打乱的时候就获取最小路径的List，List的size就是最小步数，在游戏胜利结算分数时，用户的步数除以size就是移动正确率
+//            initGframe();
+//            // 初始化菜单栏
+//            initGmenubar();
+//            // 启动计时器
+//            startTimer();
+//            // 载入图片
+//            initphotos();
+//        }
+//        // 显示
         this.setVisible(true);
     }
 
@@ -144,17 +175,12 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
             }
 
         }
-
-
-        gameStateStack.push(copyArray(data));
-
+        gameStateStack.push(copyArray(data));//不要直接写data
     }
     //打乱
     private void upset(int[] temparr, int difficultyLevel) throws InterruptedException {
-
             //data数组必须手动改一次，不然只会是最原来的3*3
             data = new int[difficultyLevel][difficultyLevel];
-
             //一维数组乱序
             Random r = new Random();
             for (int i = 0; i < difficultyLevel * difficultyLevel; i++) {
@@ -163,7 +189,6 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
                 temparr[i] = temparr[index];
                 temparr[index] = temp;
             }
-
             for (int i = 0; i < difficultyLevel * difficultyLevel; i++) {
                 // 获取0在棋盘中的位置
                 if (temparr[i] == 0)
@@ -173,6 +198,25 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
                 }
                 data[i / difficultyLevel][i % difficultyLevel] = temparr[i];
             }
+            initialPuzzle=data;//保存初始 initialPuzzle是成员变量 开局、重新开始、刷新都需要重置
+    }
+
+    //<editor-fold desc="把某个数组变成目标状态">
+    private void goalstate(int[][] goalpuzzle) {
+        //goalpuzzle=new int[difficultyLevel][difficultyLevel];
+        int value = 1;
+        for (int i = 0; i < difficultyLevel; i++) {
+            for (int j = 0; j < difficultyLevel; j++) {
+                goalpuzzle[i][j]=value;
+                value = (value + 1) % (difficultyLevel * difficultyLevel);
+            }
+        }
+    }
+    //</editor-fold>
+
+    public boolean solveAndAnimatePuzzle(int[][] initialPuzzle, int[][] goalPuzzle) {
+        solution = PuzzleSolver.solvePuzzle(initialPuzzle, goalPuzzle);//用A*搜索
+        return solution != null;
     }
     // 复制二维数组
     private int[][] copyArray(int[][] source) {
@@ -248,6 +292,8 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
     }
     //</editor-fold>
 
+
+
     private void initphotos() {
         //每次移动图片时需要把原先的图片全部删除
         this.getContentPane().removeAll();
@@ -294,7 +340,6 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
         this.getContentPane().repaint();
 
     }
-
 
     //<editor-fold desc="游戏界面和菜单初始化">
     private void initGmenubar() {
@@ -502,13 +547,15 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
             {
                 showDialog("无解，已为你重新刷新，此弹框3秒后自动关闭");
                 initdata();
+                isSolvable(data);
             }
-            solution=AStarSearch.solvePuzzle(data);//在初始打乱的时候就获取最小路径的List，List的size就是最小步数，在游戏胜利结算分数时，用户的步数除以size就是移动正确率
+            solveAndAnimatePuzzle(data, goalPuzzle);
+            //solution=AStarSearch.solvePuzzle(data);//在初始打乱的时候就获取最小路径的List，List的size就是最小步数，在游戏胜利结算分数时，用户的步数除以size就是移动正确率
             initphotos();
         } else if (theKey==KeyEvent.VK_F4) {
             step=0;
             //一键胜利
-            goalstate();
+            goalstate(data);//让data变成目标状态
             initphotos();
         }
 
@@ -516,6 +563,8 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
             // 处理玩家胜利的处理逻辑...
             long endTime = System.currentTimeMillis();
             long elapsedTimeInSeconds = (endTime - startTime) / 1000;
+
+            System.out.println("游戏最少走："+solution.size()+"次");
 
             //分数结算
             try {
@@ -568,18 +617,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
     }
     //</editor-fold>
 
-    //<editor-fold desc="目标状态">
-    //目标棋盘状态
-    private void goalstate() {
-        int value = 1;
-        for (int i = 0; i < difficultyLevel; i++) {
-            for (int j = 0; j < difficultyLevel; j++) {
-                data[i][j]=value;
-                value = (value + 1) % (difficultyLevel * difficultyLevel);
-            }
-        }
-    }
-    //</editor-fold>
+
 
     //<editor-fold desc="悔棋的实现">
     // 悔棋
@@ -679,18 +717,24 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
         }
         else if (obj==level1) {
             difficultyLevel=Level.easy;
+            goalPuzzle=new int[difficultyLevel][difficultyLevel];
+            goalstate(goalPuzzle);
             //修改路径
             path = "puzzle\\image\\"+inpath+"\\"+difficultyLevel+"\\"+inpath+photoindex+"\\";
             //replay
             replay();
         } else if (obj==level2) {
             difficultyLevel=Level.normal;
+            goalPuzzle=new int[difficultyLevel][difficultyLevel];
+            goalstate(goalPuzzle);
             //修改路径
             path = "puzzle\\image\\"+inpath+"\\"+difficultyLevel+"\\"+inpath+photoindex+"\\";
             //replay
             replay();
         } else if (obj==level3) {
             difficultyLevel=Level.difficult;
+            goalPuzzle=new int[difficultyLevel][difficultyLevel];
+            goalstate(goalPuzzle);
             //修改路径
             path = "puzzle\\image\\"+inpath+"\\"+difficultyLevel+"\\"+inpath+photoindex+"\\";
             replay();
@@ -741,8 +785,9 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
         {
             showDialog("此局无解,已为你重新生成新的一局，此弹框3秒后自动关闭");
             initdata();
+            isSolvable(data);
         }
-        solution=AStarSearch.solvePuzzle(data);//在初始打乱的时候就获取最小路径的List，List的size就是最小步数，在游戏胜利结算分数时，用户的步数除以size就是移动正确率
+        solveAndAnimatePuzzle(data, goalPuzzle);
         //重新开始计时
         startTimer();
         //重新加载图片
