@@ -11,10 +11,13 @@ import javax.swing.border.BevelBorder;
 import java.awt.event.*;
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 
 
 public class Gameframe extends JFrame implements KeyListener,ActionListener, Level {
 
+
+    private  Gamepojo gamepojo;
     //<editor-fold desc="成员变量">
     //获取当前登录用户
     User gcurrentUser =null;
@@ -76,6 +79,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
     //</editor-fold>
 
 
+
     // 调用这个方法开始游戏  replay refresh
     public void startGame() {
         // 初始化数据
@@ -88,7 +92,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
             initdata();
             isSolvable(data);
         }
-        solveAndAnimatePuzzle(data, goalPuzzle);
+        //solveAndAnimatePuzzle(data, goalPuzzle);
         // 初始化界面 标题，宽高，位置布局，关闭方式
         initGframe();
         // 初始化菜单栏
@@ -105,9 +109,13 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
     //表示游戏主界面
     public Gameframe(User gcurrentUser)
     {
+        this.gamepojo = new Gamepojo(difficultyLevel);
         //每个Gameframe对象都有它对应的登录用户
         this.gcurrentUser=gcurrentUser;
         startGame();
+
+        //开启游戏进行的线程
+        new Thread(gamepojo).start();
 //        // 初始化数据（打乱）
 //        initdata();
 //        //每个Gameframe对象都有它对应的登录用户
@@ -141,8 +149,12 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
 //            initphotos();
 //        }
 //        // 显示
+
         this.setVisible(true);
     }
+
+
+
 
 
     //<editor-fold desc="打乱拼图-初始化数组">
@@ -189,8 +201,9 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
                 temparr[i] = temparr[index];
                 temparr[index] = temp;
             }
-            for (int i = 0; i < difficultyLevel * difficultyLevel; i++) {
-                // 获取0在棋盘中的位置
+
+           for (int i = 0; i < difficultyLevel * difficultyLevel; i++) {
+                 //获取0在棋盘中的位置
                 if (temparr[i] == 0)
                 {
                 x = i / difficultyLevel;
@@ -199,7 +212,11 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
                 data[i / difficultyLevel][i % difficultyLevel] = temparr[i];
             }
             initialPuzzle=data;//保存初始 initialPuzzle是成员变量 开局、重新开始、刷新都需要重置
+            gamepojo.setDisrupt(temparr);
     }
+
+
+
 
     //<editor-fold desc="把某个数组变成目标状态">
     private void goalstate(int[][] goalpuzzle) {
@@ -308,7 +325,6 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
         //startTimer可以持续显示时间，每次移动拼图时又会initphoto，出现新的时间显示，所以StartTimer的时间是利用的这个容器，不会被遮盖
 
         //显示时间 在最上层
-        //System.out.println("bbb");
         long currentTime = System.currentTimeMillis();
         long elapsedTimeInSeconds = (currentTime - startTime) / 1000;
         timeLabel = new JLabel("Time: " + elapsedTimeInSeconds + "s");
@@ -316,18 +332,19 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
         this.getContentPane().add(timeLabel);
 
 
+        JLabel[][]jLabels=new JLabel[difficultyLevel][difficultyLevel];
         for (int k = 0; k < difficultyLevel; k++) {
             for (int i = 0; i < difficultyLevel; i++) {
                 int n=data[k][i];
-                JLabel jLabel=new JLabel(new ImageIcon(path+n+".png"));//根据棋盘位置加载对应图片
-                jLabel.setBounds((420/difficultyLevel)*i+93,(420/difficultyLevel)*k+69,(420/difficultyLevel),(420/difficultyLevel));
+                jLabels[k][i]=new JLabel(new ImageIcon(path+n+".png"));//根据棋盘位置加载对应图片
+                jLabels[k][i].setBounds((420/difficultyLevel)*i+93,(420/difficultyLevel)*k+69,(420/difficultyLevel),(420/difficultyLevel));
                 //设置边框
-                jLabel.setBorder(new BevelBorder(1));
+                jLabels[k][i].setBorder(new BevelBorder(1));
                 //先获取隐藏的容器
-                this.getContentPane().add(jLabel);
-
+                this.getContentPane().add(jLabels[k][i]);
             }
         }
+        gamepojo.setSectionImg(jLabels);
 
         //添加背景图片
         JLabel background=new JLabel(new ImageIcon("puzzle\\image\\bg.png"));
@@ -787,7 +804,7 @@ public class Gameframe extends JFrame implements KeyListener,ActionListener, Lev
             initdata();
             isSolvable(data);
         }
-        solveAndAnimatePuzzle(data, goalPuzzle);
+        //solveAndAnimatePuzzle(data, goalPuzzle);
         //重新开始计时
         startTimer();
         //重新加载图片

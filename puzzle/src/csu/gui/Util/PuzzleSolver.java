@@ -156,32 +156,6 @@ public class PuzzleSolver {
         array[x2][y2] = temp;
     }
 
-    public static void main(String[] args) {
-        int[][] initialPuzzle = {
-                {1, 2, 3},
-                {4, 0, 5},
-                {6, 7, 8}
-        };
-
-        int[][] goalPuzzle = {
-                {1, 2, 3},
-                {4, 5, 6},
-                {7, 8, 0}
-        };
-
-        List<int[][]> solution = solvePuzzle(initialPuzzle, goalPuzzle);
-
-        if (solution != null) {
-            System.out.println(solution.size());
-            for (int[][] state : solution) {
-                printPuzzle(state);
-                System.out.println();
-            }
-        } else {
-            System.out.println("未找到解决方案");
-        }
-    }
-
     private static void printPuzzle(int[][] puzzle) {
         for (int[] row : puzzle) {
             for (int value : row) {
